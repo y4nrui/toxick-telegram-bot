@@ -84,12 +84,21 @@ def echo(update, context):
         else:
             result.append(0)
     labels = ["toxic", "severely toxic", "obscene","threatening","insulting","a form of identity hate"]
+    actions_list = [
+        'Do you kiss your mother with that mouth?',
+        'Please mind your language.',
+        'We have a good track record of working together, no reason to change that now.',
+        "Surely you're educated enough to say that in a pleasant way.",
+        "Fortunately, I'm not offended, especially by one-off situations like this."
+    ]
     your_comment_is = "Your comment is"
     if is_toxic == True:
         for i in range(len(labels)):
             if result[i] == 1:
                 your_comment_is += " " + labels[i] + ","
         your_comment_is = your_comment_is.rstrip(",")
+        your_comment_is += '.'
+        your_comment_is += actions_list[int(random.randrange(0, len(actions_list)))]
         update.message.reply_text(your_comment_is)
     
 

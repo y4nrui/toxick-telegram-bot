@@ -21,16 +21,42 @@ import os
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 
+
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
+import numpy as np
+import pandas as pd
+import string 
+import re
+import nltk
+nltk.download('stopwords')
+nltk.download('punkt')
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
 
+
+import tensorflow as tf
+from tensorflow import keras
+lstm = keras.models.load_model('LSTM_Model.h5')
+
+
+import pickle
+tok = loaded_tokenizer_model = pickle.load(open("tokenizer_file.sav", 'rb'))
+from processing.helpers import *
+from processing.preprocessing import overall_cleantext
+
+# env config for local
 # SECRET_TOKEN = "1856799840:AAHCwlC5PGKQj9aZacEe42nq_nAJv9RjC90"
+# PORT = int(os.environ.get('PORT', 5000))
+
+# env config for deployment
 SECRET_TOKEN = os.getenv("SECRET_TOKEN")
 PORT = int(os.environ.get('PORT', 8443))
+
 
 # Define a few command handlers. These usually take the two arguments update and
 # context. Error handlers also receive the raised TelegramError object in error.
@@ -43,25 +69,28 @@ def help(update, context):
     """Send a message when the command /help is issued."""
     update.message.reply_text('Help!')
 
-possible_replies = [
-        "fk ur mother",
-        "stfu no one cares",
-        "how about you go and fuck yourself?",
-        "fuck your mom and your whole family",
-        "your mom pass away"
-]
 
 def echo(update, context):
     """Echo the user message."""
 
-    # update.message.reply_text(update.message.text)
-    
-
-    random_index = random.randint(0,len(possible_replies)-1)
-    if "?" in update.message.text:
-        update.message.reply_text(possible_replies[2])
-    else:
-        update.message.reply_text(possible_replies[random_index])
+    vector = overall_cleantext(str(update.message.text), tok)
+    prediction = lstm.predict(vector)
+    result = []
+    is_toxic = False
+    for v in prediction[0]:
+        if v >= 0.5:
+            result.append(1)
+            is_toxic = True
+        else:
+            result.append(0)
+    labels = ["toxic", "severely toxic", "obscene","threatening","insulting","a form of identity hate"]
+    your_comment_is = "Your comment is"
+    if is_toxic == True:
+        for i in range(len(labels)):
+            if result[i] == 1:
+                your_comment_is += " " + labels[i] + ","
+        your_comment_is = your_comment_is.rstrip(",")
+        update.message.reply_text(your_comment_is)
     
 
 
@@ -91,12 +120,12 @@ def main():
     dp.add_error_handler(error)
 
     # Start the Bot
+    # updater.start_polling()
     updater.start_webhook(listen="0.0.0.0",
                           port=int(PORT),
                           url_path=SECRET_TOKEN,
                           webhook_url='https://serene-oasis-90115.herokuapp.com/' + SECRET_TOKEN)
-    
-    # updater.bot.setWebhook('https://serene-oasis-90115.herokuapp.com/' + SECRET_TOKEN)
+
 
     # Run the bot until you press Ctrl-C or the process receives SIGINT,
     # SIGTERM or SIGABRT. This should be used most of the time, since

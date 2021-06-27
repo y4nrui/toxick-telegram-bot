@@ -97,7 +97,7 @@ def echo(update, context):
             if result[i] == 1:
                 your_comment_is += " " + labels[i] + ","
         your_comment_is = your_comment_is.rstrip(",")
-        your_comment_is += '.'
+        your_comment_is += '. '
         your_comment_is += actions_list[int(random.randrange(0, len(actions_list)))]
         update.message.reply_text(your_comment_is)
     
